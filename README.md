@@ -132,7 +132,7 @@ CREATE TABLE labreports (
 );
 ```
 
-🔄 Data Migration Strategy
+## 🔄 Data Migration Strategy
 --------------------------
 
 *   Extracted data from Excel (hospital\_data)
@@ -148,7 +148,85 @@ CREATE TABLE labreports (
 *   Inserted clean data into structured tables
 
 
+## ⚙️ Business Logic Implementation
+
+### 🔴 Trigger: Prevent Invalid Appointments
+```sql
+CREATE TRIGGER check_new_appointment
+BEFORE INSERT ON appointments
+FOR EACH ROW
+BEGIN
+   IF NEW.appointmenttime < NOW() THEN
+      SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Appointment cannot be in the past';
+   END IF;
+
+   IF EXISTS (
+      SELECT 1 FROM appointments
+      WHERE doctorid = NEW.doctorid
+      AND appointmenttime = NEW.appointmenttime
+      AND status = 'Scheduled'
+   ) THEN
+      SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Doctor already booked at this time';
+   END IF;
+END;
+```
+
+### 🔐 Stored Procedure: Role-Based Access Control
+```sql
+CREATE PROCEDURE view_doctor_data(IN username VARCHAR(100), IN password VARCHAR(100))
+BEGIN
+  -- Logic for role-based patient data access
+END;
+```
+
+**👉 Features:**
+
+- Senior doctors → Access all patients in department
+- Junior doctors → Access only their patients
+
+### 📊 Stored Procedure: Monthly Revenue Report
+```sql
+CREATE PROCEDURE sp_monthlyrevenue(IN p_year INT, IN p_month INT)
+BEGIN
+ SELECT d1.name AS department,
+        SUM(b.amount) AS total_revenue
+ FROM bills b
+ JOIN appointments a ON a.appointmentid = b.appointmentid
+ JOIN doctors d ON a.doctorid = d.doctorid
+ JOIN departments d1 ON d1.departmentid = d.departmentid
+ WHERE MONTH(b.billdate) = p_month
+   AND YEAR(b.billdate) = p_year
+ GROUP BY d1.name;
+END;
+```
+-------------------------------------------
+## 🧪 Key Features
+- ✅ Data Normalization (Excel → RDBMS)
+- ✅ Primary & Foreign Keys (Integrity)
+- ✅ Data Validation (CHECK constraints)
+- ✅ Automation (Triggers)
+- ✅ Security (Role-based access)
+- ✅ Reporting (Revenue insights)
+
+ -------------------------------------------
+## 🚀 Key Learnings
+Designing real-world relational database systems
+Implementing data integrity constraints
+Writing advanced SQL queries
+Using triggers & stored procedures
+Handling data migration & cleaning
+Applying business rules in databases
+
+-----------------------------
+### 📈 Future Improvements
+- Add indexing for performance optimization
+- Implement user authentication system
+- Create dashboards using Power BI
+- Add audit logs for tracking changes
 
 
-
-
+-----------------------------------
+## 👨‍💻 Author
+**Ankit Raj**
